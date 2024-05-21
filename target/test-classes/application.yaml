@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: streams-demo
+  kafka:
+    bootstrap-servers: localhost:29092
+    application-id: streams-demo
+  server:
+    port: 8091
+app:
+  topics:
+    orders-topic: orders
+    orders-count-topic: orders-count

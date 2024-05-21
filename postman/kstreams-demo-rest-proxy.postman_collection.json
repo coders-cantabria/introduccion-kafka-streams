@@ -1,0 +1,144 @@
+{
+	"info": {
+		"_postman_id": "b9756273-ac32-4ee6-a12a-248f19eb5515",
+		"name": "kstreams-demo-rest-proxy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "23167029"
+	},
+	"item": [
+		{
+			"name": "countAllProducts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/orders/count",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"count"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "countByProductId",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/orders/count/product_2",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"orders",
+						"count",
+						"product_2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create-order",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set (\"orderId\", \"10001\");"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept": true,
+					"content-type": true
+				}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/vnd.kafka.json.v2+json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/vnd.kafka.v2+json, application/vnd.kafka+json, application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"records\": [\n        {\n            \"key\": \"{{orderId}}\",\n            \"value\": {\n                \"orderId\": \"{{orderId}}\",\n                \"productId\": \"product_2\",\n                \"amount\": \"11.25\"\n            }\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{schemaRegistryUrl}}/orders",
+					"host": [
+						"{{schemaRegistryUrl}}"
+					],
+					"path": [
+						"orders"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "schemaRegistryUrl",
+			"value": "http://localhost:9082/topics",
+			"type": "string"
+		},
+		{
+			"key": "baseUrl",
+			"value": "localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "randomNum",
+			"value": ""
+		},
+		{
+			"key": "orderId",
+			"value": ""
+		}
+	]
+}

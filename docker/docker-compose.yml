@@ -1,0 +1,132 @@
+version: '3.7'
+
+networks:
+  local:
+    name: my-kstreams-network
+
+services:
+  zookeeper:
+    hostname: zookeeper
+    image: confluentinc/cp-zookeeper:7.4.3
+    container_name: zookeeper_container
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - local
+    volumes:
+      - ./data/zookeeper:/var/lib/zookeeper
+
+  kafka:
+    image: confluentinc/cp-enterprise-kafka:7.4.3
+    hostname: kafka
+    container_name: kafka_container
+    user: "1000:1000"
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_HEAP_OPTS: -Xmx3G -Xms1G
+      KAFKA_BROKER_ID: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_RETENTION_MS: -1
+      KAFKA_MESSAGE_MAX_BYTES: 10485880
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka:9092
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: "true"
+      CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+    volumes:
+      - ./data/kafka:/var/lib/kafka
+      - ./data/config/kafka:/tmp/kafka
+    networks:
+      - local
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.4.3
+    container_name: schema-registry_container
+    hostname: schema-registry
+    networks:
+      - local
+    ports:
+      - "9081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:9092'
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_MODE_MUTABILITY: "true"
+    volumes:
+      - ./data/config/kafka:/tmp/kafka
+    depends_on:
+      - kafka
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.4.3
+    container_name: rest-proxy_container
+    hostname: rest-proxy
+    networks:
+      - local
+    ports:
+      - "9082:8082"
+    environment:
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KAFKA_REST_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka
+      - zookeeper
+      - schema-registry
+  akhq:
+    image: tchiotludo/akhq:0.21.0
+    restart: on-failure
+    container_name: akhq_container
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+              schema-registry:
+                url: "http://schema-registry:8081"
+    ports:
+      - "8089:8080"
+    depends_on:
+      - rest-proxy
+      - kafka
+      - zookeeper
+      - schema-registry
+    networks:
+      - local
+  init-kafka:
+    image: confluentinc/cp-enterprise-kafka:7.4.3
+    container_name: init
+    networks:
+      - local
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:9092 --list
+      echo -e 'Creating kafka topics'
+      kafka-topics --create --if-not-exists --topic orders --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1
+      kafka-topics --create --if-not-exists --topic orders-count --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      "
