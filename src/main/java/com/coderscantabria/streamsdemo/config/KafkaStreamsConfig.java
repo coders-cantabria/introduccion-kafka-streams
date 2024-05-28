@@ -40,6 +40,7 @@ public class KafkaStreamsConfig {
         props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, JsonSerde.class.getName());
+        props.put(COMMIT_INTERVAL_MS_CONFIG, 0);
         props.put(APPLICATION_ID_CONFIG, appName);
         return new KafkaStreamsConfiguration(props);
     }
