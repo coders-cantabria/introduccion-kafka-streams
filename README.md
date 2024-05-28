@@ -6,6 +6,7 @@ We'll use Kafka Streams, a client library for building applications, where the i
 
 If you want to learn more about Kafka Streams and Processor API, please visit its documentation: https://kafka.apache.org/documentation/streams/developer-guide/dsl-api.html .
 
+Original presentation related to this project can be found in: `./presentation/Presentación KSTs v2.pptx`
 
 ##### Requeriments
 
